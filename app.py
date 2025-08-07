@@ -70,3 +70,5 @@ readings_dict = {
 }
 
 plot_all_days_histogram(readings_dict)
+
+plt.show()
