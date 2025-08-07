@@ -3,6 +3,7 @@ from shutil import which
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 def read_remote_readings(file_path, meter: str = "Unknown"):
     # 1. Read the CSV file with only the required columns
@@ -61,6 +62,44 @@ def plot_all_days_histogram(readings):
     plt.tight_layout()
 
 
+def plot_daily(readings, meter, ylim):
+    readings[meter]['Day'] = readings[meter].index.get_level_values('Date').date
+    all_summed = readings[meter].groupby('Day').sum()
+    # Convert index to datetime for plotting
+    #all_summed.index = pd.to_datetime(all_summed.index.map(lambda x: f"{x[0]} {x[1]:02d}:00:00"))
+
+    plt.figure(figsize=(12, 6))
+    sns.barplot(x=all_summed.index, y=all_summed['FlowRateM3PerMinute'], color='skyblue')
+    plt.title('Total Daily Flow Rate for ' + meter)
+    plt.xlabel('Date')
+    plt.ylabel('Flow Rate (m³/min)')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y')
+    plt.tight_layout()
+    plt.ylim(0, ylim)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=10))
+
+def plot_hours(readings, meter):
+    readings[meter]['Day'] = readings[meter].index.get_level_values('Date').date
+    readings[meter]['Hour'] = readings[meter].index.get_level_values('Date').hour
+    all_summed = readings[meter].groupby(['Day', 'Hour']).sum()
+    # Convert index to datetime for plotting
+    all_summed.index = pd.to_datetime(all_summed.index.map(lambda x: f"{x[0]} {x[1]:02d}:00:00"))
+
+    plt.figure(figsize=(12, 6))
+    sns.barplot(x=all_summed.index, y=all_summed['FlowRateM3PerMinute'], color='skyblue')
+    plt.title('Total Hourly Flow Rate for ' + meter)
+    plt.xlabel('Date')
+    plt.ylabel('Flow Rate (m³/min)')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y')
+    plt.tight_layout()
+    # Set y-axis top limit to 1.75
+    plt.ylim(0, 1.75)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=10))
+
 readings_dict = {
     '6': read_remote_readings(r'Data\WaterReadings_6.csv', meter='Building 6'),
     '8': read_remote_readings(r'Data\WaterReadings_8.csv', meter='Building 8'),
@@ -70,5 +109,10 @@ readings_dict = {
 }
 
 plot_all_days_histogram(readings_dict)
+plot_daily(readings_dict, 'All', 60)
+plot_daily(readings_dict, '6', 15)
+plot_daily(readings_dict, '8', 15)
+plot_daily(readings_dict, '10', 15)
+plot_daily(readings_dict, '12', 15)
 
 plt.show()
